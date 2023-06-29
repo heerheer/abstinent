@@ -5,16 +5,17 @@ import anime from 'animejs'
 import QRCode from 'qrcode'
 
 import { encodeWithKeyDataCenter, decodeWithKeyDataCenter } from './services/shortLinkService'
+import html2canvas from 'html2canvas';
 async function getUrlParams() {
     const params = new URLSearchParams(window.location.search);
     const key = params.get('key'); // 123  
     return { key };
 }
 
-let config = reactive({
+let config = ref({
     picUrl: 'https://cdn.pixabay.com/photo/2023/06/18/04/57/silver-throated-tanager-8071234_1280.jpg',
     day: 0,
-    tip: '我们终将抵达终点',
+    tip: '',
     secretImgUrl: '',
 })
 
@@ -23,7 +24,8 @@ onMounted(async () => {
     if (key != null) {
         let data = await decodeWithKeyDataCenter(key)
         if (data) {
-            config = data;
+            config.value = data;
+            createQRCode(location.origin)
         } else {
             console.log('没有这个key对应的卡片')
 
@@ -39,10 +41,23 @@ const qrcode = ref<HTMLImageElement>() as Ref<HTMLImageElement>
 
 
 const exportImage = async () => {
-    const key = await encodeWithKeyDataCenter(config)
+    const key = await encodeWithKeyDataCenter(config.value)
     const url = `https://${location.host}?key=${key}`;
     createQRCode(url)
     console.log(url)
+    html2canvas(document.querySelector('#front')!, {
+        useCORS: true,
+        backgroundColor: null
+    }).then((canvas) => {
+        // Get canvas data URL
+        var dataURL = canvas.toDataURL();
+
+        // Create download link
+        var link = document.createElement('a');
+        link.download = 'myimage.png';
+        link.href = dataURL;
+        link.click();
+    })
 }
 const createQRCode = async (url: string) => {
 
@@ -93,8 +108,8 @@ const flip = () => {
 
             </div>
             <div
-                class="back bg-white w-full h-full rounded-2xl  flip-card-back flip-card-side absolute z-0 flex items-center justify-center">
-                <img :src="config.secretImgUrl" class=" object-cover" alt="我的图图呢?" />
+                class="back bg-white  h-full w-full rounded-2xl  flip-card-back flip-card-side absolute z-0 flex items-center justify-center">
+                <img :src="config.secretImgUrl" class="h-full object-cover" alt="我的图图呢?" />
             </div>
         </div>
     </div>
